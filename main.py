@@ -2,19 +2,15 @@ import discord
 from discord import Intents
 from discord.ext import commands
 from secret import TOKEN
+from role_limits_file import LIMITS
 import datetime
 import time
-from db import users
+from users_file import users
 
 
 CHANNEL_ID = 1209491033474342976 #1073113435660886107
 
 bot = commands.Bot(intents=Intents.default(), command_prefix="!")
-
-
-limits = {
-    "@everyone": 3
-}
 
 
 @bot.event
@@ -23,8 +19,8 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} command(s)")
-    except:
-        pass
+    except Exception as e:
+        print(e)
 
 
 @bot.tree.command(name="voice_kick", description="Kicks user from voice channel")
@@ -46,9 +42,8 @@ async def voice_kick(interaction: discord.Interaction, user: discord.Member):
 
     limit = 0
     for role in user.roles:
-        print(role.name)
-        if role.name in limits:
-            limit = max(limit, limits[role.name])
+        if role.id in LIMITS:
+            limit = max(limit, LIMITS[role.id])
 
     if used_today >= limit:
         await interaction.response.send_message(f"You ran out of kicks.\nYou will get your `{limit}` kicks <t:{int(time.time()//1+(23-d.hour)*60*60+(60-d.minute)*60+(60-d.second))}:R>")
@@ -66,8 +61,27 @@ async def voice_kick(interaction: discord.Interaction, user: discord.Member):
     else:
         users[user.id] = [str(d.date())]
 
-    with open("db.py","w") as f:
+    with open("users_file.py", "w") as f:
         f.write(f"users = {users}")
+
+
+@bot.tree.command(name="set_role_limit", description="Sets role kicks limit")
+async def set_role_limit(interaction: discord.Interaction, role: discord.Role, new_limit: int):
+    if not interaction.user.guild_permissions.administrator:
+        return
+    LIMITS[role.id] = new_limit
+    with open("role_limits_file.py","w") as f:
+        f.write(f"LIMITS = {LIMITS}")
+
+    await interaction.response.send_message(f"Successfully changed kicks limit of role <@&{role.id}> to `{new_limit}`")
+
+
+@bot.tree.command(name="limits", description="Shows kicks limits for all roles")
+async def limits(interaction: discord.Interaction):
+    msg = "Kicks limits for roles:"
+    for role in sorted([(LIMITS[i],i) for i in LIMITS])[::-1]:
+        msg += f"\n<@&{role[1]}>: `{role[0]}`"
+    await interaction.response.send_message(msg)
 
 
 bot.run(token=TOKEN)
