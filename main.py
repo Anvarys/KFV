@@ -36,10 +36,9 @@ async def voice_kick(interaction: discord.Interaction, user: discord.Member):
         return
     d = datetime.datetime.now(tz=datetime.timezone.utc)
     used_today = 0
-    if kicker.id in users:
-        for time_ in users[user.id]:
-            if time_ == str(d.date()):
-                used_today += 1
+
+    if user.id in users and str(d.date()) in users[user.id]:
+        used_today = users[user.id][str(d.date())]
 
     limit = 0
     for role in kicker.roles:
@@ -57,10 +56,9 @@ async def voice_kick(interaction: discord.Interaction, user: discord.Member):
     except Exception as e:
         print(e)
 
-    if user.id in users:
-        users[user.id].append(str(d.date()))
-    else:
-        users[user.id] = [str(d.date())]
+    users[user.id] = {
+        str(d.date()): used_today+1
+    }
 
     with open("users_file.py", "w") as f:
         f.write(f"users = {users}")
