@@ -25,6 +25,7 @@ async def on_ready():
 
 @bot.tree.command(name="voice_kick", description="Kicks user from voice channel")
 async def voice_kick(interaction: discord.Interaction, user: discord.Member):
+    global users
     kicker = interaction.user
     if user.voice is None:
         await interaction.response.send_message(
@@ -37,8 +38,11 @@ async def voice_kick(interaction: discord.Interaction, user: discord.Member):
     d = datetime.datetime.now(tz=datetime.timezone.utc)
     used_today = 0
 
-    if user.id in users and str(d.date()) in users[user.id]:
-        used_today = users[user.id][str(d.date())]
+    if str(d.date()) not in users:
+        users = {str(d.date()):{}}
+    else:
+        if user.id in users[str(d.date())]:
+            used_today = users[str(d.date())][user.id]
 
     limit = 0
     for role in kicker.roles:
@@ -56,9 +60,12 @@ async def voice_kick(interaction: discord.Interaction, user: discord.Member):
     except Exception as e:
         print(e)
 
-    users[user.id] = {
-        str(d.date()): used_today+1
-    }
+    if len(users) > 1:
+        for i in users:
+            if i != str(d.date()):
+                del users[i]
+
+    users[str(d.date())][user.id] = used_today + 1
 
     with open("users_file.py", "w") as f:
         f.write(f"users = {users}")
