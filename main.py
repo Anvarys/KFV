@@ -29,6 +29,14 @@ async def on_ready():
 
 @bot.tree.command(name="voice_kick", description="Kicks user from voice channel")
 async def voice_kick(interaction: discord.Interaction, user: discord.Member):
+    if user.voice is None:
+        await interaction.response.send_message(
+            f"You can't kick this user, science they aren't in voice channel.")
+        return
+    if user.id == interaction.user.id:
+        await interaction.response.send_message(
+            f"You can't your self from voice channel.")
+        return
     d = datetime.datetime.now(tz=datetime.timezone.utc)
     used_today = 0
     if user.id in users:
